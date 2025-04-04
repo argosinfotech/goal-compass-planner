@@ -10,7 +10,9 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Objectives from "./pages/Objectives";
 import KeyResults from "./pages/KeyResults";
+import Calendar from "./pages/Calendar";
 import Team from "./pages/Team";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -26,7 +28,9 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/objectives" element={<Objectives />} />
             <Route path="/key-results" element={<KeyResults />} />
+            <Route path="/calendar" element={<Calendar />} />
             <Route path="/team" element={<Team />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </OkrProvider>
