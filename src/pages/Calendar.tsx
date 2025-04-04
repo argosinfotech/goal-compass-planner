@@ -91,7 +91,7 @@ const Calendar = () => {
   const renderDayContent = (props: DayContentProps) => {
     const day = props.date;
     
-    if (!day) return <div>{props.day}</div>;
+    if (!day) return <div>{props.displayText}</div>;
     
     const dayEvents = getEventsForDay(day);
     const hasObjective = objectiveFallsOnDay(day);
