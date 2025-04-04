@@ -1,59 +1,54 @@
 
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { useOkr } from '@/contexts/OkrContext';
+import { addDays, format, isWithinInterval, parseISO } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useOkr } from '@/contexts/OkrContext';
-import { format, addMonths, subMonths } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
-interface Event {
+type Event = {
   id: string;
   title: string;
   description: string;
   date: Date;
-  type: 'objective' | 'keyresult' | 'meeting' | 'other';
-}
+  type: 'objective' | 'key-result' | 'meeting';
+};
 
-const CalendarPage = () => {
-  const { objectives, keyResults } = useOkr();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [showEventDialog, setShowEventDialog] = useState(false);
-  const [events, setEvents] = useState<Event[]>([
-    {
-      id: '1',
-      title: 'OKR Review',
-      description: 'Monthly review of team objectives and key results',
-      date: new Date(),
-      type: 'meeting',
-    },
-    {
-      id: '2',
-      title: 'Objective Due Date',
-      description: 'Deadline for the main Q2 objective',
-      date: new Date(new Date().setDate(new Date().getDate() + 5)),
-      type: 'objective',
-    },
-  ]);
+// Sample events data
+const initialEvents: Event[] = [
+  {
+    id: '1',
+    title: 'Quarterly OKRs Review',
+    description: 'Team meeting to review Q2 progress',
+    date: addDays(new Date(), 2),
+    type: 'meeting',
+  },
+  {
+    id: '2',
+    title: 'Deadline: Increase Market Share',
+    description: 'Objective deadline',
+    date: addDays(new Date(), 5),
+    type: 'objective',
+  },
+  {
+    id: '3',
+    title: 'Key Result Check-in',
+    description: 'Review progress on key results',
+    date: addDays(new Date(), -2),
+    type: 'key-result',
+  },
+];
+
+const Calendar = () => {
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [showAddEventDialog, setShowAddEventDialog] = useState(false);
   const [newEvent, setNewEvent] = useState<Omit<Event, 'id'>>({
     title: '',
     description: '',
@@ -61,74 +56,68 @@ const CalendarPage = () => {
     type: 'meeting',
   });
 
-  // Handle next and previous month navigation
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+  const { objectives, keyResults } = useOkr();
 
-  // Get events for the selected date
-  const eventsForSelectedDate = events.filter(
-    (event) => format(event.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-  );
-
-  // Open dialog to add new event
-  const openNewEventDialog = (date: Date) => {
-    setSelectedDate(date);
-    setNewEvent({
-      title: '',
-      description: '',
-      date,
-      type: 'meeting',
-    });
-    setShowEventDialog(true);
-  };
-
-  // Handle saving a new event
-  const handleSaveEvent = () => {
-    setEvents([
-      ...events,
-      {
-        ...newEvent,
-        id: Math.random().toString(36).substring(2, 9),
-      },
-    ]);
-    setShowEventDialog(false);
-  };
-
-  // Get event types for rendering in calendar
-  const getDayEvents = (date: Date) => {
-    return events.filter(
-      (event) => format(event.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+  // Function to get events for a specific day
+  const getEventsForDay = (day: Date) => {
+    return events.filter(event => 
+      event.date.getDate() === day.getDate() &&
+      event.date.getMonth() === day.getMonth() &&
+      event.date.getFullYear() === day.getFullYear()
     );
   };
 
-  // Function to render dots for events on a specific day
-  const renderEventIndicators = (date: Date) => {
-    const dayEvents = getDayEvents(date);
+  // Function to check if an objective falls on a specific day
+  const objectiveFallsOnDay = (day: Date) => {
+    return objectives.some(objective => {
+      const startDate = parseISO(objective.startDate);
+      const endDate = parseISO(objective.endDate);
+      return isWithinInterval(day, { start: startDate, end: endDate });
+    });
+  };
+
+  // Handle add event form submission
+  const handleAddEvent = () => {
+    const event: Event = {
+      ...newEvent,
+      id: Date.now().toString(),
+    };
+    setEvents([...events, event]);
+    setShowAddEventDialog(false);
+    setNewEvent({
+      title: '',
+      description: '',
+      date: new Date(),
+      type: 'meeting',
+    });
+  };
+
+  // Function to render day content in calendar
+  const renderDayContent = (props: React.ComponentProps<typeof CalendarComponent>['components']['DayContent']) => {
+    // Check if the day exists in the props
+    if (!props.date) return null;
     
-    if (dayEvents.length === 0) return null;
+    const dayEvents = getEventsForDay(props.date);
+    const hasObjective = objectiveFallsOnDay(props.date);
     
     return (
-      <div className="flex mt-1 justify-center space-x-1">
-        {dayEvents.slice(0, 3).map((event, i) => (
-          <div
-            key={i}
-            className={`h-1.5 w-1.5 rounded-full ${
-              event.type === 'objective'
-                ? 'bg-blue-500'
-                : event.type === 'keyresult'
-                ? 'bg-green-500'
-                : event.type === 'meeting'
-                ? 'bg-purple-500'
-                : 'bg-gray-500'
-            }`}
-          />
-        ))}
-        {dayEvents.length > 3 && (
-          <div className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+      <div className="relative w-full h-full">
+        <div>{props.date.getDate()}</div>
+        {dayEvents.length > 0 && (
+          <div className="absolute bottom-0 right-0 left-0 flex justify-center">
+            <span className="h-1.5 w-1.5 bg-primary rounded-full" />
+          </div>
+        )}
+        {hasObjective && (
+          <div className="absolute bottom-2 right-0 left-0 flex justify-center">
+            <span className="h-1.5 w-1.5 bg-green-500 rounded-full" />
+          </div>
         )}
       </div>
     );
   };
+
+  const selectedDayEvents = date ? getEventsForDay(date) : [];
 
   return (
     <MainLayout>
@@ -137,81 +126,51 @@ const CalendarPage = () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
             <p className="text-muted-foreground mt-1">
-              Track important dates, deadlines, and meetings
+              Track your OKRs timeline and important events
             </p>
           </div>
-          <Button onClick={() => openNewEventDialog(selectedDate)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button onClick={() => setShowAddEventDialog(true)}>
             Add Event
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Calendar Section */}
+        <div className="grid gap-6 lg:grid-cols-3">
           <Card className="col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between px-6">
-              <CardTitle>{format(currentMonth, 'MMMM yyyy')}</CardTitle>
-              <div className="flex space-x-2">
-                <Button variant="outline" size="icon" onClick={prevMonth}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={nextMonth}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+            <CardHeader>
+              <CardTitle>OKRs Timeline</CardTitle>
             </CardHeader>
-            <CardContent className="p-0 pl-2">
-              <Calendar
+            <CardContent>
+              <CalendarComponent
                 mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                month={currentMonth}
-                onMonthChange={setCurrentMonth}
-                className="p-3 pointer-events-auto"
+                selected={date}
+                onSelect={setDate}
+                className="rounded-md border shadow"
                 components={{
-                  DayContent: ({ day, date }) => (
-                    <>
-                      <div>{date.getDate()}</div>
-                      {renderEventIndicators(date)}
-                    </>
-                  ),
-                }}
-                modifiers={{
-                  event: (date) => getDayEvents(date).length > 0,
-                }}
-                modifiersClassNames={{
-                  event: "relative cursor-pointer",
+                  DayContent: renderDayContent
                 }}
               />
             </CardContent>
           </Card>
 
-          {/* Day Details */}
           <Card>
             <CardHeader>
-              <CardTitle>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardTitle>
+              <CardTitle>
+                {date ? format(date, 'MMMM d, yyyy') : 'Select a date'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {eventsForSelectedDate.length > 0 ? (
+              {selectedDayEvents.length > 0 ? (
                 <div className="space-y-4">
-                  {eventsForSelectedDate.map((event) => (
-                    <div
-                      key={event.id}
-                      className="rounded-md border p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`h-3 w-3 rounded-full ${
-                            event.type === 'objective'
-                              ? 'bg-blue-500'
-                              : event.type === 'keyresult'
-                              ? 'bg-green-500'
-                              : event.type === 'meeting'
-                              ? 'bg-purple-500'
-                              : 'bg-gray-500'
-                          }`}
-                        />
-                        <h4 className="font-medium">{event.title}</h4>
+                  {selectedDayEvents.map(event => (
+                    <div key={event.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-medium">{event.title}</h3>
+                        <Badge variant={
+                          event.type === 'meeting' ? 'outline' : 
+                          event.type === 'objective' ? 'default' : 'secondary'
+                        }>
+                          {event.type}
+                        </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">
                         {event.description}
@@ -220,78 +179,82 @@ const CalendarPage = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No events for this day</p>
-                  <Button
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => openNewEventDialog(selectedDate)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Event
-                  </Button>
-                </div>
+                <p className="text-muted-foreground text-center py-8">
+                  No events scheduled for this day
+                </p>
               )}
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* New Event Dialog */}
-      <Dialog open={showEventDialog} onOpenChange={setShowEventDialog}>
+      {/* Add Event Dialog */}
+      <Dialog open={showAddEventDialog} onOpenChange={setShowAddEventDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Add New Event</DialogTitle>
             <DialogDescription>
-              Create a new calendar event for {format(selectedDate, 'MMMM d, yyyy')}.
+              Create a new event on your OKRs calendar
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Event Title</Label>
-              <Input
-                id="title"
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="event-title">Title</Label>
+              <Input 
+                id="event-title" 
                 value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                placeholder="Enter event title"
+                onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">Event Type</Label>
-              <Select
-                value={newEvent.type}
-                onValueChange={(value: 'objective' | 'keyresult' | 'meeting' | 'other') =>
-                  setNewEvent({ ...newEvent, type: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select event type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="objective">Objective</SelectItem>
-                  <SelectItem value="keyresult">Key Result</SelectItem>
-                  <SelectItem value="meeting">Meeting</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
+
+            <div className="grid gap-2">
+              <Label htmlFor="event-description">Description</Label>
+              <Textarea 
+                id="event-description" 
                 value={newEvent.description}
-                onChange={(e) =>
-                  setNewEvent({ ...newEvent, description: e.target.value })
-                }
-                placeholder="Enter event description"
+                onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="event-date">Date</Label>
+              <Input 
+                id="event-date" 
+                type="date"
+                value={newEvent.date ? format(newEvent.date, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setNewEvent({
+                  ...newEvent, 
+                  date: e.target.value ? new Date(e.target.value) : new Date()
+                })}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="event-type">Type</Label>
+              <select
+                id="event-type"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={newEvent.type}
+                onChange={(e) => setNewEvent({
+                  ...newEvent,
+                  type: e.target.value as 'objective' | 'key-result' | 'meeting'
+                })}
+              >
+                <option value="meeting">Meeting</option>
+                <option value="objective">Objective</option>
+                <option value="key-result">Key Result</option>
+              </select>
             </div>
           </div>
+
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setShowEventDialog(false)}>
+            <Button variant="outline" onClick={() => setShowAddEventDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveEvent}>Save Event</Button>
+            <Button onClick={handleAddEvent}>
+              Add Event
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -299,4 +262,4 @@ const CalendarPage = () => {
   );
 };
 
-export default CalendarPage;
+export default Calendar;
