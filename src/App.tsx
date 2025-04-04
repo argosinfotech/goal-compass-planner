@@ -13,6 +13,7 @@ import KeyResults from "./pages/KeyResults";
 import Calendar from "./pages/Calendar";
 import Team from "./pages/Team";
 import Settings from "./pages/Settings";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
         <OkrProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/objectives" element={<Objectives />} />
             <Route path="/key-results" element={<KeyResults />} />
