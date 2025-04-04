@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { DayContent, DayContentProps } from 'react-day-picker';
+import { DayContentProps } from 'react-day-picker';
 
 type Event = {
   id: string;
@@ -21,7 +20,6 @@ type Event = {
   type: 'objective' | 'key-result' | 'meeting';
 };
 
-// Sample events data
 const initialEvents: Event[] = [
   {
     id: '1',
@@ -59,7 +57,6 @@ const Calendar = () => {
 
   const { objectives, keyResults } = useOkr();
 
-  // Function to get events for a specific day
   const getEventsForDay = (day: Date) => {
     return events.filter(event => 
       event.date.getDate() === day.getDate() &&
@@ -68,7 +65,6 @@ const Calendar = () => {
     );
   };
 
-  // Function to check if an objective falls on a specific day
   const objectiveFallsOnDay = (day: Date) => {
     return objectives.some(objective => {
       const startDate = parseISO(objective.startDate);
@@ -77,7 +73,6 @@ const Calendar = () => {
     });
   };
 
-  // Handle add event form submission
   const handleAddEvent = () => {
     const event: Event = {
       ...newEvent,
@@ -93,11 +88,10 @@ const Calendar = () => {
     });
   };
 
-  // Function to render day content in calendar
   const renderDayContent = (props: DayContentProps) => {
     const day = props.date;
     
-    if (!day) return <>{props.children}</>;
+    if (!day) return <div>{props.day}</div>;
     
     const dayEvents = getEventsForDay(day);
     const hasObjective = objectiveFallsOnDay(day);
@@ -190,7 +184,6 @@ const Calendar = () => {
         </div>
       </div>
 
-      {/* Add Event Dialog */}
       <Dialog open={showAddEventDialog} onOpenChange={setShowAddEventDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
