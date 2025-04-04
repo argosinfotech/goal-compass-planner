@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { OkrProvider } from "@/contexts/OkrContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
@@ -18,13 +19,15 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/objectives" element={<Objectives />} />
-          <Route path="/key-results" element={<KeyResults />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <OkrProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/objectives" element={<Objectives />} />
+            <Route path="/key-results" element={<KeyResults />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </OkrProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
