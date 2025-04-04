@@ -131,7 +131,7 @@ const KeyResults = () => {
               <SelectValue placeholder="Filter by objective" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Objectives</SelectItem>
+              <SelectItem value="all">All Objectives</SelectItem>
               {objectives.map((obj) => (
                 <SelectItem key={obj.id} value={obj.id}>{obj.title}</SelectItem>
               ))}
