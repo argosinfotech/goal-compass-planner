@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { DayContent, DayContentProps } from 'react-day-picker';
 
 type Event = {
   id: string;
@@ -93,16 +94,17 @@ const Calendar = () => {
   };
 
   // Function to render day content in calendar
-  const renderDayContent = (props: React.ComponentProps<typeof CalendarComponent>['components']['DayContent']) => {
-    // Check if the day exists in the props
-    if (!props.date) return null;
+  const renderDayContent = (props: DayContentProps) => {
+    const day = props.date;
     
-    const dayEvents = getEventsForDay(props.date);
-    const hasObjective = objectiveFallsOnDay(props.date);
+    if (!day) return <>{props.children}</>;
+    
+    const dayEvents = getEventsForDay(day);
+    const hasObjective = objectiveFallsOnDay(day);
     
     return (
       <div className="relative w-full h-full">
-        <div>{props.date.getDate()}</div>
+        <div>{day.getDate()}</div>
         {dayEvents.length > 0 && (
           <div className="absolute bottom-0 right-0 left-0 flex justify-center">
             <span className="h-1.5 w-1.5 bg-primary rounded-full" />
